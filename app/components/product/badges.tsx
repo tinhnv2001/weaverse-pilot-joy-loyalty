@@ -1,0 +1,275 @@
+import { useMoney } from "@shopify/hydrogen";
+import type { MoneyV2 } from "@shopify/hydrogen/storefront-api-types";
+import { useThemeSettings } from "@weaverse/hydrogen";
+import clsx from "clsx";
+import { colord } from "colord";
+import type {
+  ProductQuery,
+  ProductVariantFragment,
+} from "storefront-api.generated";
+import { useLegacyThemeText } from "~/hooks/use-legacy-theme-text";
+import type { ThemeSettings } from "~/types/weaverse";
+import { cn } from "~/utils/cn";
+
+export interface BadgeStyleSettings {
+  colorText: string;
+  colorTextInverse: string;
+  badgeTextTransform: string;
+}
+
+function Badge({
+  text,
+  backgroundColor,
+  badgeStyle,
+  className,
+}: {
+  text: string;
+  backgroundColor: string;
+  badgeStyle: BadgeStyleSettings;
+  className?: string;
+}) {
+  let { colorText, colorTextInverse, badgeTextTransform } = badgeStyle;
+  return (
+    <span
+      style={{
+        backgroundColor,
+        color: colord(backgroundColor).isDark() ? colorTextInverse : colorText,
+        textTransform: badgeTextTransform,
+      }}
+      className={cn("rounded-sm px-1.5 py-1 text-sm uppercase", className)}
+    >
+      {text}
+    </span>
+  );
+}
+
+export function NewBadge({
+  publishedAt,
+  badgeStyle,
+  newBadgeColor,
+  newBadgeDaysOld,
+  className,
+}: {
+  publishedAt: string;
+  badgeStyle: BadgeStyleSettings;
+  newBadgeColor: string;
+  newBadgeDaysOld: number;
+  className?: string;
+}) {
+  const themeText = useLegacyThemeText();
+  if (isNewArrival(publishedAt, newBadgeDaysOld)) {
+    return (
+      <Badge
+        text={themeText("badge.new")}
+        backgroundColor={newBadgeColor}
+        badgeStyle={badgeStyle}
+        className={clsx("new-badge", className)}
+      />
+    );
+  }
+  return null;
+}
+
+export function BestSellerBadge({
+  badgeStyle,
+  bestSellerBadgeColor,
+  className,
+}: {
+  badgeStyle: BadgeStyleSettings;
+  bestSellerBadgeColor: string;
+  className?: string;
+}) {
+  const themeText = useLegacyThemeText();
+  return (
+    <Badge
+      text={themeText("badge.bestSeller")}
+      backgroundColor={bestSellerBadgeColor}
+      badgeStyle={badgeStyle}
+      className={clsx("best-seller-badge", className)}
+    />
+  );
+}
+
+export function SoldOutBadge({
+  badgeStyle,
+  soldOutBadgeColor,
+  className,
+}: {
+  badgeStyle: BadgeStyleSettings;
+  soldOutBadgeColor: string;
+  className?: string;
+}) {
+  const themeText = useLegacyThemeText();
+  return (
+    <Badge
+      text={themeText("badge.soldOut")}
+      backgroundColor={soldOutBadgeColor}
+      badgeStyle={badgeStyle}
+      className={clsx("sold-out-badge", className)}
+    />
+  );
+}
+
+export function BundleBadge({
+  badgeStyle,
+  bundleBadgeColor,
+  className,
+}: {
+  badgeStyle: BadgeStyleSettings;
+  bundleBadgeColor: string;
+  className?: string;
+}) {
+  const themeText = useLegacyThemeText();
+  return (
+    <Badge
+      text={themeText("badge.bundle")}
+      backgroundColor={bundleBadgeColor}
+      badgeStyle={badgeStyle}
+      className={clsx("bundle-badge", className)}
+    />
+  );
+}
+
+export function SaleBadge({
+  price,
+  compareAtPrice,
+  badgeStyle,
+  saleBadgeColor,
+  className,
+}: {
+  price: MoneyV2;
+  compareAtPrice: MoneyV2;
+  badgeStyle: BadgeStyleSettings;
+  saleBadgeColor: string;
+  className?: string;
+}) {
+  const themeText = useLegacyThemeText();
+  let { amount, percentage } = calculateDiscount(price, compareAtPrice);
+  let discountAmount = useMoney({ amount, currencyCode: price.currencyCode });
+  let text = themeText("badge.sale")
+    .replace("[amount]", discountAmount.withoutTrailingZeros)
+    .replace("[percentage]", percentage);
+
+  if (percentage !== "0") {
+    return (
+      <Badge
+        text={text}
+        backgroundColor={saleBadgeColor}
+        badgeStyle={badgeStyle}
+        className={clsx("sale-badge", className)}
+      />
+    );
+  }
+  return null;
+}
+
+function calculateDiscount(price: MoneyV2, compareAtPrice: MoneyV2) {
+  if (price?.amount && compareAtPrice?.amount) {
+    let priceNumber = Number(price.amount);
+    let compareAtPriceNumber = Number(compareAtPrice.amount);
+    if (compareAtPriceNumber > priceNumber) {
+      return {
+        amount: String(compareAtPriceNumber - priceNumber),
+        percentage: Math.round(
+          ((compareAtPriceNumber - priceNumber) / compareAtPriceNumber) * 100,
+        ).toString(),
+      };
+    }
+  }
+  return { amount: "0", percentage: "0" };
+}
+
+function isNewArrival(date: string, daysOld = 30) {
+  return (
+    new Date(date).valueOf() >
+    new Date().setDate(new Date().getDate() - daysOld).valueOf()
+  );
+}
+
+export function ProductBadges({
+  product,
+  selectedVariant,
+  className = "",
+  as: Component = "div",
+}: {
+  product: NonNullable<ProductQuery["product"]>;
+  selectedVariant: ProductVariantFragment;
+  className?: string;
+  as?: React.ElementType;
+}) {
+  let {
+    colorText,
+    colorTextInverse,
+    badgeTextTransform,
+    newBadgeColor,
+    newBadgeDaysOld,
+    bestSellerBadgeColor,
+    soldOutBadgeColor,
+    bundleBadgeColor,
+    saleBadgeColor,
+  } = useThemeSettings<ThemeSettings>();
+
+  let badgeStyle: BadgeStyleSettings = {
+    colorText,
+    colorTextInverse,
+    badgeTextTransform,
+  };
+
+  if (!(product && selectedVariant)) {
+    return null;
+  }
+
+  let isBundle = Boolean(product?.isBundle?.requiresComponents);
+  let { publishedAt, badges } = product;
+  let isBestSellerProduct = badges
+    .filter(Boolean)
+    .some(({ key, value }) => key === "best_seller" && value === "true");
+
+  let isFragment = Component.toString() === "Symbol(react.fragment)";
+  let componentProps = isFragment
+    ? {}
+    : {
+        className: cn(
+          "flex items-center gap-2 text-sm empty:hidden",
+          className,
+        ),
+      };
+
+  return (
+    <Component {...componentProps}>
+      {selectedVariant.availableForSale ? (
+        <>
+          {isBundle && (
+            <BundleBadge
+              badgeStyle={badgeStyle}
+              bundleBadgeColor={bundleBadgeColor}
+            />
+          )}
+          <SaleBadge
+            price={selectedVariant.price as MoneyV2}
+            compareAtPrice={selectedVariant.compareAtPrice as MoneyV2}
+            badgeStyle={badgeStyle}
+            saleBadgeColor={saleBadgeColor}
+          />
+          <NewBadge
+            publishedAt={publishedAt}
+            badgeStyle={badgeStyle}
+            newBadgeColor={newBadgeColor}
+            newBadgeDaysOld={newBadgeDaysOld}
+          />
+          {isBestSellerProduct && (
+            <BestSellerBadge
+              badgeStyle={badgeStyle}
+              bestSellerBadgeColor={bestSellerBadgeColor}
+            />
+          )}
+        </>
+      ) : (
+        <SoldOutBadge
+          badgeStyle={badgeStyle}
+          soldOutBadgeColor={soldOutBadgeColor}
+        />
+      )}
+    </Component>
+  );
+}

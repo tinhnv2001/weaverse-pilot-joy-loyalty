@@ -1,0 +1,242 @@
+import type { InspectorGroup } from "@weaverse/hydrogen";
+
+export const footerSettings = {
+  group: "Footer",
+  inputs: [
+    {
+      type: "select",
+      name: "footerWidth",
+      label: "Footer width",
+      configs: {
+        options: [
+          { value: "full", label: "Full page" },
+          { value: "stretch", label: "Stretch" },
+          { value: "fixed", label: "Fixed" },
+        ],
+      },
+      defaultValue: "stretch",
+    },
+    {
+      type: "image",
+      name: "footerLogoData",
+      label: "Logo",
+      defaultValue: "",
+    },
+    {
+      type: "range",
+      name: "footerLogoWidth",
+      label: "Logo width",
+      configs: {
+        min: 20,
+        max: 200,
+        step: 1,
+        unit: "px",
+      },
+      defaultValue: 80,
+    },
+    {
+      // `name` is a key into `i18n.staticContent`, not a component prop.
+      type: "translation-key",
+      name: "footer.bio",
+      label: "Store bio",
+    },
+    {
+      type: "heading",
+      label: "Social links",
+    },
+    {
+      type: "text",
+      name: "socialInstagram",
+      label: "Instagram",
+      defaultValue: "https://www.instagram.com/",
+    },
+    {
+      type: "text",
+      name: "socialX",
+      label: "X (formerly Twitter)",
+      defaultValue: "https://x.com/i/communities/1636383560197373952",
+    },
+    {
+      type: "text",
+      name: "socialLinkedIn",
+      label: "LinkedIn",
+      defaultValue: "https://www.linkedin.com/company/weaverseio",
+    },
+    {
+      type: "text",
+      name: "socialFacebook",
+      label: "Facebook",
+      defaultValue: "https://www.facebook.com/weaverse",
+    },
+    {
+      type: "heading",
+      label: "Store information",
+    },
+    {
+      type: "translation-key",
+      name: "footer.addressTitle",
+      label: "Title",
+    },
+    {
+      type: "translation-key",
+      name: "footer.storeAddress",
+      label: "Address",
+    },
+    {
+      type: "translation-key",
+      name: "footer.storeEmail",
+      label: "Email",
+    },
+    {
+      type: "heading",
+      label: "Newsletter",
+    },
+    {
+      type: "translation-key",
+      name: "footer.newsletterTitle",
+      label: "Title",
+    },
+    {
+      type: "translation-key",
+      name: "footer.newsletterDescription",
+      label: "Description",
+    },
+    {
+      type: "translation-key",
+      name: "footer.newsletterPlaceholder",
+      label: "Input placeholder",
+    },
+    {
+      type: "translation-key",
+      name: "footer.newsletterButtonText",
+      label: "Button text",
+    },
+    {
+      type: "range",
+      name: "newsletterInputWidth",
+      label: "Input width",
+      configs: {
+        min: 200,
+        max: 480,
+        step: 10,
+        unit: "px",
+      },
+      defaultValue: 450,
+    },
+    {
+      type: "translation-key",
+      name: "footer.copyright",
+      label: "Copyright text",
+    },
+    {
+      type: "heading",
+      label: "Payment methods",
+    },
+    {
+      type: "switch",
+      name: "showPaymentMethods",
+      label: "Show payment method icons",
+      defaultValue: false,
+    },
+    {
+      type: "switch",
+      name: "showAmazonPay",
+      label: "Amazon Pay",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showPayPal",
+      label: "PayPal",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showKlarna",
+      label: "Klarna",
+      defaultValue: false,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showGooglePay",
+      label: "Google Pay",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showApplePay",
+      label: "Apple Pay",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showJCB",
+      label: "JCB",
+      defaultValue: false,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showAmericanExpress",
+      label: "American Express",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showVisa",
+      label: "Visa",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showMastercard",
+      label: "Mastercard",
+      defaultValue: true,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showDiners",
+      label: "Diners Club",
+      defaultValue: false,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showDiscover",
+      label: "Discover",
+      defaultValue: false,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "switch",
+      name: "showAlipay",
+      label: "Alipay",
+      defaultValue: false,
+      condition: (data) => data.showPaymentMethods === true,
+    },
+    {
+      type: "heading",
+      label: "Colors",
+    },
+    {
+      type: "color",
+      label: "Background",
+      name: "footerBgColor",
+      defaultValue: "#000000",
+    },
+    {
+      type: "color",
+      label: "Text",
+      name: "footerText",
+      defaultValue: "#ffffff",
+    },
+  ],
+} as const satisfies InspectorGroup;
