@@ -7,6 +7,7 @@ import type {
 } from "storefront-api.generated";
 import invariant from "tiny-invariant";
 import type { EnhancedMenu } from "~/types/menu";
+import { loadJoyInitialData } from "./joy";
 import { seoPayload } from "./seo";
 import { localizedThemePayload } from "./translations";
 
@@ -18,9 +19,10 @@ export async function loadCriticalData({
   request,
   context,
 }: LoaderFunctionArgs) {
-  const [layout, weaverseTheme] = await Promise.all([
+  const [layout, weaverseTheme, joy] = await Promise.all([
     getLayoutData(context),
     context.weaverse.loadThemeSettings(),
+    loadJoyInitialData(context, request),
   ]);
 
   const seo = seoPayload.root({ shop: layout.shop, url: request.url });
@@ -45,6 +47,12 @@ export async function loadCriticalData({
     weaverseTheme: localizedThemePayload(weaverseTheme, storefront.i18n),
     googleGtmID: env.PUBLIC_GOOGLE_GTM_ID,
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
+    // Joy Loyalty: `joy` is the key the Joy Weaverse blocks read from the root
+    // loader. The API URL and shop domain are not credentials.
+    joy,
+    joyApiUrl: env.JOY_API_URL ?? null,
+    joyShopDomain: env.JOY_SHOP_DOMAIN ?? null,
+    joyAssetUrl: env.JOY_WIDGET_ASSET_URL ?? null,
   };
 }
 
@@ -106,7 +114,35 @@ async function getLayoutData({ storefront, env }: AppLoadContext) {
       )
     : undefined;
 
-  return { shop: data.shop, headerMenu, footerMenu };
+  return {
+    shop: data.shop,
+    headerMenu: withLoyaltyMenuItem(headerMenu),
+    footerMenu,
+  };
+}
+
+const LOYALTY_PAGE_PATH = "/loyalty";
+
+/**
+ * Joy Loyalty: always link the loyalty page from the header, unless the
+ * merchant already added it to the Shopify main menu.
+ */
+function withLoyaltyMenuItem(menu: EnhancedMenu | undefined): EnhancedMenu {
+  const items = menu?.items ?? [];
+  if (items.some((item) => item.to === LOYALTY_PAGE_PATH)) {
+    return { id: menu?.id ?? "joy-header-menu", items };
+  }
+  const loyaltyItem = {
+    id: "joy-loyalty-page",
+    title: "Rewards",
+    type: "PAGE",
+    url: LOYALTY_PAGE_PATH,
+    to: LOYALTY_PAGE_PATH,
+    target: "_self",
+    isExternal: false,
+    items: [],
+  } as unknown as EnhancedMenu["items"][number];
+  return { id: menu?.id ?? "joy-header-menu", items: [...items, loyaltyItem] };
 }
 
 type Swatch = {

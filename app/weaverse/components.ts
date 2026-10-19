@@ -1,3 +1,4 @@
+import { joyComponents } from "@joy-loyalty/weaverse-hydrogen";
 import type { HydrogenComponent } from "@weaverse/hydrogen";
 import * as Heading from "~/components/heading";
 import * as Link from "~/components/link";
@@ -167,6 +168,7 @@ export const components: HydrogenComponent[] = [
   SlideShow,
   SlideShowSlide,
   Spacer,
+  ...joyComponents,
 ];
 
 // Universal children: types that can be dropped into ANY container (a parent —

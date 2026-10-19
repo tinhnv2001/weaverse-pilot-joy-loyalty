@@ -4215,6 +4215,96 @@
       }
     },
     {
+      "type": "joy-loyalty-page",
+      "title": "Joy — Loyalty Page",
+      "hasLoader": true,
+      "settings": [
+        {
+          "group": "Content",
+          "inputs": [
+            {
+              "type": "select",
+              "name": "sectionId",
+              "label": "Content",
+              "helpText": "Show the complete loyalty page, or add this block more than once and choose one section per block. Everything else is designed in your Joy admin.",
+              "configs": {
+                "options": [
+                  {
+                    "label": "All sections",
+                    "value": "all"
+                  },
+                  {
+                    "label": "Hero banner",
+                    "value": "hero"
+                  },
+                  {
+                    "label": "Sign-up banner",
+                    "value": "inlineBanner"
+                  },
+                  {
+                    "label": "How it works",
+                    "value": "howItWorks"
+                  },
+                  {
+                    "label": "Ways to earn",
+                    "value": "earn"
+                  },
+                  {
+                    "label": "Ways to redeem",
+                    "value": "redeem"
+                  },
+                  {
+                    "label": "VIP tiers",
+                    "value": "tiers"
+                  },
+                  {
+                    "label": "Referral program",
+                    "value": "referral"
+                  },
+                  {
+                    "label": "FAQs",
+                    "value": "faq"
+                  },
+                  {
+                    "label": "Rewards redemption",
+                    "value": "redeemProgram"
+                  },
+                  {
+                    "label": "My rewards",
+                    "value": "myRewards"
+                  },
+                  {
+                    "label": "Rewards activity",
+                    "value": "activity"
+                  },
+                  {
+                    "label": "Loyalty dashboard",
+                    "value": "accountDashboard"
+                  },
+                  {
+                    "label": "Referral management",
+                    "value": "referralManagement"
+                  },
+                  {
+                    "label": "Loyalty pass wallet",
+                    "value": "walletPass"
+                  },
+                  {
+                    "label": "Link accounts",
+                    "value": "linkAccounts"
+                  }
+                ]
+              },
+              "defaultValue": "all"
+            }
+          ]
+        }
+      ],
+      "presets": {
+        "sectionId": "all"
+      }
+    },
+    {
       "type": "judgeme-reviews",
       "title": "Judgeme reviews widget",
       "hasLoader": false,

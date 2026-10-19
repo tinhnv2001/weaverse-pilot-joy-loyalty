@@ -35,6 +35,10 @@ import { CustomAnalytics } from "./components/root/custom-analytics";
 import { GenericError } from "./components/root/generic-error";
 import { GlobalLoading } from "./components/root/global-loading";
 import {
+  JoyCartProvider,
+  JoyLoyaltyLauncher,
+} from "./components/root/joy-loyalty";
+import {
   NewsletterPopup,
   useShouldRenderNewsletterPopup,
 } from "./components/root/newsletter-popup";
@@ -265,10 +269,11 @@ export const Layout = withWeaverse(function RootLayout({
                 <ScrollingAnnouncement />
                 <Header />
                 <main id="mainContent" className="grow">
-                  {children}
+                  <JoyCartProvider>{children}</JoyCartProvider>
                 </main>
                 <Footer />
               </div>
+              <JoyLoyaltyLauncher />
               {shouldShowNewsletterPopup && <NewsletterPopup />}
             </TooltipProvider>
             <CustomAnalytics />

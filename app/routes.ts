@@ -38,6 +38,9 @@ export default hydrogenRoutes([
         "routes/api/collection-product-count.ts",
       ),
       route("product/:productHandle/reviews", "routes/api/reviews.ts"),
+      route("joy-token", "routes/api/joy-token.ts"),
+      route("joy-products", "routes/api/joy-products.ts"),
+      route("joy-place-order-scope", "routes/api/joy-place-order-scope.ts"),
     ]),
     ...prefix("blogs", [
       route(":blogHandle", "routes/blogs/blog.tsx"),
