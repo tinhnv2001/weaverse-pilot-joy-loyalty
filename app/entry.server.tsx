@@ -89,8 +89,9 @@ export default async function handleRequest(
   // (Set-Cookie in server.ts) are excluded by Oxygen automatically. See
   // app/utils/full-page-cache.ts for the gating rules.
   //
-  // The root loader keeps Joy data anonymous (app/.server/joy.ts). If it ever
-  // carries customer data, the document must not be shared.
+  // The root loader carries Joy customer data for signed-in shoppers
+  // (app/.server/joy.ts): those documents get private, no-store, and shared
+  // documents vary on Cookie so a cached guest page never reaches a member.
   const rootJoy = (
     reactRouterContext.staticHandlerContext.loaderData?.root as
       | { joy?: Parameters<typeof isJoyInitialDataPersonalized>[0] }
@@ -104,7 +105,7 @@ export default async function handleRequest(
   } else if (fullPageCacheControl) {
     responseHeaders.set("Oxygen-Cache-Control", fullPageCacheControl);
     if (!responseHeaders.has("Vary")) {
-      responseHeaders.set("Vary", "Accept-Encoding");
+      responseHeaders.set("Vary", "Accept-Encoding, Cookie");
     }
   }
 

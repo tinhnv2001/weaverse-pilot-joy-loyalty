@@ -11,6 +11,10 @@ const UNCACHEABLE_SEGMENTS = new Set([
   "subrequest-profiler",
 ]);
 
+// Hydrogen's session cookie. A request carrying it may belong to a signed-in
+// customer, whose document holds Joy customer data — never share it.
+const SESSION_COOKIE_RE = /(?:^|;\s*)session=/;
+
 // Presence of any of these means the request comes from Weaverse Studio
 // (design mode / revision preview) — it must always reach the worker.
 const WEAVERSE_PREVIEW_PARAMS = [
@@ -33,11 +37,12 @@ const WEAVERSE_PREVIEW_PARAMS = [
  * - non-GET / non-200 responses
  * - personalized or mutating routes (account, cart, discount, api)
  * - Weaverse Studio design-mode and revision-preview requests
+ * - requests carrying the Hydrogen `session` cookie (possibly signed in)
  *
- * The document itself is safe to share because all personalized state
- * (cart, customer access token) is bootstrapped client-side via /api/cart —
- * see CartStoreSync. Do not reintroduce personalized data into root/route
- * loaders without revisiting this.
+ * The root loader resolves the Joy customer server-side (app/.server/joy.ts),
+ * so only cookie-less (guest) documents are shared. `Vary: Cookie` is added in
+ * entry.server.tsx so a cached guest document is never replayed to a request
+ * that carries cookies.
  *
  * Freshness: 300s shared max-age (matching the Weaverse SDK's Builder-data
  * freshness — total worst-case publish-to-live is ~10 minutes; Oxygen's
@@ -63,6 +68,10 @@ export function getFullPageCacheControl(
     if (url.searchParams.has(param)) {
       return null;
     }
+  }
+
+  if (SESSION_COOKIE_RE.test(request.headers.get("Cookie") ?? "")) {
+    return null;
   }
 
   const segments = url.pathname.split("/").filter(Boolean);
