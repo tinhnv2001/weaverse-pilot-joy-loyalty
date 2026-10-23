@@ -24,19 +24,15 @@ declare global {
     PUBLIC_SHOPIFY_INBOX_SHOP_ID: string;
     WEAVERSE_HOST?: string;
     WEAVERSE_PROJECT_ID: string;
-    // Joy Loyalty (server-only — never prefix with PUBLIC_)
-    JOY_API_URL: string;
-    JOY_SHOP_DOMAIN: string;
-    JOY_API_SECRET: string;
-    JOY_WIDGET_ASSET_URL?: string;
   }
 }
 
 declare module "react-router" {
   import type { Storefront as StorefrontBase } from "@shopify/hydrogen";
 
-  interface AppLoadContext
-    extends Awaited<ReturnType<typeof createHydrogenRouterContext>> {
+  interface AppLoadContext extends Awaited<
+    ReturnType<typeof createHydrogenRouterContext>
+  > {
     // to change context type, change the return of createHydrogenRouterContext() instead
     // Override storefront type to use I18nLocale instead of I18nBase
     storefront: Omit<StorefrontBase, "i18n"> & {
