@@ -1,4 +1,9 @@
 import {
+  isJoyInitialDataPersonalized,
+  JOY_PERSONALIZED_CACHE_CONTROL,
+  joyCspDirectives,
+} from "@joy-loyalty/hydrogen";
+import {
   createContentSecurityPolicy,
   type HydrogenRouterContextProvider,
 } from "@shopify/hydrogen";
@@ -16,8 +21,32 @@ export default async function handleRequest(
   reactRouterContext: EntryContext,
   context: HydrogenRouterContextProvider,
 ) {
+  const weaverseCsp = getWeaverseCsp(request, context);
+  const joyCsp = joyCspDirectives({
+    apiUrl: context.env?.JOY_API_URL,
+    assetUrl: context.env?.JOY_WIDGET_ASSET_URL,
+  });
   const { nonce, header, NonceProvider } = createContentSecurityPolicy({
-    ...getWeaverseCsp(request, context),
+    ...weaverseCsp,
+    scriptSrc: [
+      "'self'",
+      ...(weaverseCsp.scriptSrc as string[]),
+      ...joyCsp.scriptSrc,
+    ],
+    connectSrc: [
+      "'self'",
+      ...(weaverseCsp.connectSrc as string[]),
+      ...joyCsp.connectSrc,
+    ],
+    styleSrc: [
+      "'self'",
+      "'unsafe-inline'",
+      "https://cdn.shopify.com",
+      ...(weaverseCsp.styleSrc as string[]),
+      ...joyCsp.styleSrc,
+    ],
+    imgSrc: ["'self'", "data:", "https://cdn.shopify.com", ...joyCsp.imgSrc],
+    fontSrc: ["'self'", "data:", ...joyCsp.fontSrc],
     shop: {
       checkoutDomain:
         context.env?.PUBLIC_CHECKOUT_DOMAIN || context.env?.PUBLIC_STORE_DOMAIN,
@@ -57,14 +86,22 @@ export default async function handleRequest(
   // headers are required by Oxygen; responses that commit a session cookie
   // (Set-Cookie in server.ts) are excluded by Oxygen automatically. See
   // app/utils/full-page-cache.ts for the gating rules.
-  const fullPageCacheControl = getFullPageCacheControl(
-    request,
-    responseStatusCode,
-  );
-  if (fullPageCacheControl) {
+  const rootJoy = (
+    reactRouterContext.staticHandlerContext.loaderData?.root as
+      | { joy?: Parameters<typeof isJoyInitialDataPersonalized>[0] }
+      | undefined
+  )?.joy;
+  const joyPersonalized = isJoyInitialDataPersonalized(rootJoy);
+  const fullPageCacheControl = joyPersonalized
+    ? null
+    : getFullPageCacheControl(request, responseStatusCode);
+  if (joyPersonalized) {
+    // Member Joy data is embedded in the document: never share it.
+    responseHeaders.set("Cache-Control", JOY_PERSONALIZED_CACHE_CONTROL);
+  } else if (fullPageCacheControl) {
     responseHeaders.set("Oxygen-Cache-Control", fullPageCacheControl);
     if (!responseHeaders.has("Vary")) {
-      responseHeaders.set("Vary", "Accept-Encoding");
+      responseHeaders.set("Vary", "Accept-Encoding, Cookie");
     }
   }
 

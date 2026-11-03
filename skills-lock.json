@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "joy-headless-install": {
+      "source": "tinhnv2001/joy-loyalty-hydrogen-skills",
+      "sourceType": "github",
+      "skillPath": "skills/joy-headless-install/SKILL.md",
+      "computedHash": "172c125798ae8a419e25695e0478f43f157c1aa5ed473fe97ac2182f878a214d"
+    }
+  }
+}

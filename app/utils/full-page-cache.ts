@@ -31,6 +31,7 @@ const WEAVERSE_PREVIEW_PARAMS = [
  * those responses out of the cache), so this gate only needs to exclude:
  *
  * - non-GET / non-200 responses
+ * - requests carrying a `session=` cookie (root loader embeds Joy member data)
  * - personalized or mutating routes (account, cart, discount, api)
  * - Weaverse Studio design-mode and revision-preview requests
  *
@@ -56,6 +57,12 @@ export function getFullPageCacheControl(
   try {
     url = new URL(request.url);
   } catch {
+    return null;
+  }
+
+  // Oxygen's cache key ignores cookies: a guest document replayed to a
+  // signed-in shopper would hide their Joy loyalty state.
+  if (/(?:^|;\s*)session=/.test(request.headers.get("Cookie") ?? "")) {
     return null;
   }
 
