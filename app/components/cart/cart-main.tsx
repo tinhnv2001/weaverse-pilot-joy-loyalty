@@ -11,6 +11,7 @@ import type { CartLayoutType } from "~/types/others";
 import { CartBestSellers } from "./cart-best-sellers";
 import { CartLineItem } from "./cart-line-item";
 import { CartSummary } from "./cart-summary";
+import { JoyCartRedeem } from "./joy-redeem-cart";
 import { getCartLineRenderKeys } from "./optimistic-cart";
 
 function CartEmpty({
@@ -129,7 +130,12 @@ export function CartMain({
             </ul>
           </ScrollArea>
         </div>
-        {cartHasItems && <CartSummary cart={cart} layout={layout} />}
+        {cartHasItems && (
+          <div>
+            {layout === "drawer" && <JoyCartRedeem cart={cart} />}
+            <CartSummary cart={cart} layout={layout} />
+          </div>
+        )}
       </div>
     </>
   );

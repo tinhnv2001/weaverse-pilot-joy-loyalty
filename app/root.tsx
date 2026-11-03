@@ -1,5 +1,7 @@
 import "@fontsource-variable/cabin"; // Supports weights 400-700
 import "@fontsource-variable/newsreader"; // Supports weights 200-900
+import { JoyProvider, JoyWidget } from "@joy-loyalty/hydrogen";
+import { getJoyInitialData } from "@joy-loyalty/hydrogen/server";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import type { CartReturn, SeoConfig } from "@shopify/hydrogen";
 import { Analytics, getSeoMeta, useNonce } from "@shopify/hydrogen";
@@ -14,14 +16,17 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useFetcher,
   useLocation,
+  useRevalidator,
   useRouteError,
   useRouteLoaderData,
 } from "react-router";
+import { usePrefixPathWithLocale } from "~/hooks/use-prefix-path-with-locale";
 import { useLegacyThemeText } from "~/hooks/use-legacy-theme-text";
 import type { ThemeSettings } from "~/types/weaverse";
 import { loadCriticalData, loadDeferredData } from "./.server/root";
-import { CartStoreSync } from "./components/cart/cart-sync";
+import { CartStoreSync, useCartFetcherSync } from "./components/cart/cart-sync";
 import { useCartStore } from "./components/cart/store";
 import { IconSprite } from "./components/icon-sprite";
 import { Footer } from "./components/layout/footer";
@@ -34,10 +39,6 @@ import { PwaInstallHint } from "./components/pwa-install-hint";
 import { CustomAnalytics } from "./components/root/custom-analytics";
 import { GenericError } from "./components/root/generic-error";
 import { GlobalLoading } from "./components/root/global-loading";
-import {
-  JoyCartProvider,
-  JoyLoyaltyLauncher,
-} from "./components/root/joy-loyalty";
 import {
   NewsletterPopup,
   useShouldRenderNewsletterPopup,
@@ -75,12 +76,30 @@ export async function loader(args: LoaderFunctionArgs) {
   const deferredData = loadDeferredData(args);
 
   // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
+  const { env, storefront, customerAccount } = args.context;
+  // Joy data is personalized for members; entry.server.tsx keeps those
+  // documents out of the full-page cache. Never stub customerAccount here.
+  const [criticalData, joy] = await Promise.all([
+    loadCriticalData(args),
+    getJoyInitialData({
+      storefront,
+      customerAccount,
+      apiUrl: env.JOY_API_URL ?? "",
+      shopDomain: env.JOY_SHOP_DOMAIN ?? "",
+      secret: env.JOY_API_SECRET ?? "",
+      locale: storefront.i18n.language.toLowerCase(),
+      request: args.request,
+    }),
+  ]);
 
   return {
     ...deferredData,
     ...criticalData,
     publicEnv: getPublicEnv(args.context.env),
+    joy,
+    joyApiUrl: env.JOY_API_URL ?? null,
+    joyShopDomain: env.JOY_SHOP_DOMAIN ?? null,
+    joyAssetUrl: env.JOY_WIDGET_ASSET_URL ?? null,
   };
 }
 
@@ -158,6 +177,15 @@ export const Layout = withWeaverse(function RootLayout({
   // stays anonymous and Oxygen can full-page cache it. The provider re-renders
   // as the store updates, so cart_updated analytics still fire on mutations.
   const serverCart = useCartStore((state) => state.serverCart);
+  const openCartDrawer = useCartStore((state) => state.open);
+  // Joy redeem/free-gift actions post standard CartForm actions to the cart
+  // route; syncing the fetcher result keeps the cart store (and drawer) fresh.
+  const joyCartFetcher = useFetcher();
+  useCartFetcherSync(joyCartFetcher);
+  const joyRevalidator = useRevalidator();
+  const joyCartRoute = usePrefixPathWithLocale("/cart");
+  const joyLoyaltyPageUrl = usePrefixPathWithLocale("/pages/rewards");
+  const joyLoginUrl = usePrefixPathWithLocale("/account/login");
 
   // Bypass Weaverse theme layout for Hydrogen dev tools
   // See: https://github.com/Weaverse/pilot/issues/321
@@ -269,11 +297,36 @@ export const Layout = withWeaverse(function RootLayout({
                 <ScrollingAnnouncement />
                 <Header />
                 <main id="mainContent" className="grow">
-                  <JoyCartProvider>{children}</JoyCartProvider>
+                  <JoyProvider
+                    cart={serverCart ?? undefined}
+                    onCartUpdated={(cart) =>
+                      useCartStore.setState({
+                        serverCart: cart as unknown as typeof serverCart,
+                      })
+                    }
+                    onOpenCartDrawer={openCartDrawer}
+                  >
+                    {children}
+                  </JoyProvider>
                 </main>
                 <Footer />
               </div>
-              <JoyLoyaltyLauncher />
+              <JoyWidget
+                apiUrl={data.joyApiUrl}
+                shopDomain={data.joyShopDomain ?? undefined}
+                assetUrl={data.joyAssetUrl ?? undefined}
+                initialData={data.joy ?? null}
+                locale={locale.language?.toLowerCase()}
+                currency={locale.currency}
+                country={locale.country}
+                loginUrl={joyLoginUrl}
+                loyaltyPageUrl={joyLoyaltyPageUrl}
+                cart={serverCart ?? undefined}
+                cartFetcher={joyCartFetcher}
+                cartRevalidate={joyRevalidator.revalidate}
+                cartRoute={joyCartRoute}
+                onOpenCartDrawer={openCartDrawer}
+              />
               {shouldShowNewsletterPopup && <NewsletterPopup />}
             </TooltipProvider>
             <CustomAnalytics />

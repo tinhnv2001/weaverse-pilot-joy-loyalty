@@ -1,6 +1,19 @@
 ---
 name: joy-headless-install
-description: Install Joy Loyalty (headless) into a merchant's Shopify Hydrogen storefront, optionally with Weaverse — env vars, root loader, CSP, personalized cache, /api/joy-token, <JoyWidget/>, cart wiring, Loyalty Page, Weaverse blocks, Oxygen deploy, verification. Use when asked to "install Joy on Hydrogen", "add Joy loyalty widget to Hydrogen/Weaverse", "install Joy headless", "integrate Joy into Hydrogen", "set up @joy-loyalty/hydrogen", or when debugging a Joy headless integration (joy-token 401 loops, CSP blocks, widget skeleton stuck).
+description: >
+  Install Joy Loyalty (headless) into a merchant's Shopify Hydrogen storefront,
+  optionally with Weaverse: env vars, root loader, CSP, personalized cache,
+  /api/joy-token, <JoyWidget/>, cart wiring, Loyalty Page, Weaverse blocks,
+  Oxygen deploy, verification. Also use when debugging a Joy headless
+  integration (joy-token 401 loops, CSP blocks, widget skeleton stuck, no
+  sign-up points). Never commit JOY_API_SECRET.
+when-to-use: install Joy on Hydrogen, add Joy loyalty widget to Hydrogen/Weaverse, install Joy headless, integrate Joy into Hydrogen, set up @joy-loyalty/hydrogen, Joy widget not working on Hydrogen, /joy-headless-install
+argument-hint: "[store.myshopify.com]"
+compatibility: Requires a Shopify Hydrogen storefront (React Router 7, @shopify/hydrogen >= 2025.5), Node.js >= 18, npm/pnpm/yarn, the Joy Loyalty app installed on the store, and a working Customer Account API setup
+metadata:
+  author: tinhnv2001
+  version: "1.1"
+  short-description: "Install Joy Loyalty on a Shopify Hydrogen / Weaverse storefront"
 ---
 
 # Joy headless install (Hydrogen / Weaverse)
@@ -19,7 +32,18 @@ See `references/fields.md` for every prop/option and `references/example-root.md
 for copy-ready snippets. Packages: `@joy-loyalty/hydrogen`, `@joy-loyalty/sdk`,
 `@joy-loyalty/weaverse-hydrogen` on npm.
 
-## 0. Go/no-go gate (ask before touching code)
+## 0. Prerequisites and go/no-go gate (ask before touching code)
+
+Stop and tell the user what is missing if any check fails. Do not install half of the integration.
+
+- `package.json` has `@shopify/hydrogen` and `react-router` 7 → it is a Hydrogen storefront.
+  Liquid theme stores do not need this skill: Joy works there through the app embed.
+- The Joy Loyalty app is installed on the store, and the user can open Joy admin.
+- `context.customerAccount` works (Customer Account API configured), otherwise every shopper is a guest.
+- The user can provide `JOY_SHOP_DOMAIN` (`*.myshopify.com`) and the Headless secret (`hs_…`).
+  Ask for it to be put in `.env` / Oxygen env vars yourself; never echo it in chat, commits or files.
+
+Then confirm:
 
 1. **Secret.** Headless auth signs requests with the shop's **Headless secret**
    (Joy admin → Settings → Manage keys). The REST "Secret key" is not accepted (401).
@@ -79,6 +103,13 @@ In `app/root.tsx` loader (import from `@joy-loyalty/hydrogen/server`), call it w
 (the Weaverse block reads `useRouteLoaderData('root').joy`, and `.cart` as a cart fallback).
 Also return `joyApiUrl`, `joyShopDomain`, `joyAssetUrl` for the client. Never throws.
 Leave `exposeToken` off (it puts a live JWT into SSR HTML). Snippet: `references/example-root.md` §1.
+
+> **Never stub `customerAccount`** (e.g. `{isLoggedIn: () => false, query: () => ({})}`) to keep the
+> document anonymous for Oxygen's full-page cache. The widget reads "no customer in SSR + a cached Joy
+> token" as a logout and clears the token on every page load (`orchestrator/context.js`). The widget then
+> runs `/info` as a guest, never sends `isEarnSignup=true`, and **sign-up points are never awarded**.
+> Always pass the real `context.customerAccount`, and keep personalized documents out of the shared
+> cache with §6 + §10 instead.
 
 ## 6. `entry.server.tsx` — CSP + personalized cache
 
@@ -140,7 +171,11 @@ export const components = [ ...existing, ...joyComponents /*, JoyLoyaltyWidget (
 Only opt a document into `Oxygen-Cache-Control` when ALL hold:
 GET + 200; root `joy` not personalized; no `session=` cookie (cache key ignores cookies → guest HTML
 would be replayed to a member, widget shows "Sign in"); path segment (after optional locale) not in
-`account, api, cart, discount, graphiql, subrequest-profiler`; no Weaverse preview params. Also set `Vary`.
+`account, api, cart, discount, graphiql, subrequest-profiler`; no Weaverse preview params. Also set
+`Vary: Accept-Encoding, Cookie` so a cached guest document is never replayed to a request carrying the
+session cookie.
+If the storefront already ships a full-page cache (Weaverse Pilot: `app/utils/full-page-cache.ts`),
+add the `session=` cookie guard to it. Do **not** make the root loader anonymous to keep the cache (§5).
 Note: RR7 single-fetch `.data` requests bypass `handleRequest` — add the same check in any `handleDataRequest`.
 
 ## 11. Deploy to Oxygen
@@ -159,6 +194,9 @@ Guest (incognito):
 Member:
 - [ ] Response `Cache-Control: private, no-store`, no `Oxygen-Cache-Control`.
 - [ ] `/api/joy-token` 200 `{token, expiresIn}`; then `Authorization: Bearer` calls to `JOY_API_URL/customer...`.
+- [ ] With a brand-new customer: the first member `GET JOY_API_URL/info` carries `isEarnSignup=true`,
+      sessionStorage gets `joy:earn-signup-sent`, and the sign-up points show up after reload. Missing
+      flag → `customerAccount` is stubbed or the member got a cached guest document (§5, §10).
 - [ ] Points/tier match Joy admin; redeem → coupon auto-applied to cart (cart wiring) and drawer opens.
 - [ ] Switch locale (`/fr/...`) → Joy texts in that language.
 
@@ -175,6 +213,7 @@ Member:
 | Build: cannot resolve `dompurify` | Install it explicitly (`npm i dompurify`) when your package manager doesn't hoist `@joy-loyalty/hydrogen`'s dependency (pnpm/PnP). |
 | Package upgrade doesn't show | Stale Vite prebundle: reinstall, `rm -rf node_modules/.vite`, restart dev. |
 | Member sees guest UI after login | Cached guest document served — full-page cache rules §10 / session-cookie guard. |
+| New member gets no sign-up points; `/info` has no `isEarnSignup`, `joy:token` re-minted each page load | `customerAccount` stubbed/anonymous in the root loader → widget treats it as logout and clears the token. Pass the real `context.customerAccount` (§5). Backend side: Sign up program active, customer created after the program start, not in test mode. |
 | Wrong language | `locale` not passed / not lowercased (`storefront.i18n.language` is `EN`). |
 | Loyalty Page block empty | Shop is on Loyalty Page V1 (`isLoyaltyPageV2Enabled` false) or env missing. |
 

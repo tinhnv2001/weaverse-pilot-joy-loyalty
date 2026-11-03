@@ -26,8 +26,8 @@ export const TEST_ENV: Env = {
   PUBLIC_SHOPIFY_INBOX_SHOP_ID: "",
   WEAVERSE_HOST: "https://weaverse.test",
   WEAVERSE_PROJECT_ID: "test-project",
-  JOY_API_URL: "https://joy.test/app/api/v1/headless",
-  JOY_SHOP_DOMAIN: "shop.test",
+  JOY_API_URL: "",
+  JOY_SHOP_DOMAIN: "",
   JOY_API_SECRET: "",
 };
 

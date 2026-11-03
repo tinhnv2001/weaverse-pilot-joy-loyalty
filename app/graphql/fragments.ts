@@ -188,6 +188,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
       value
     }
     cost {
+      subtotalAmount {
+        ...Money
+      }
       totalAmount {
         ...Money
       }
@@ -203,6 +206,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
         ...Money
       }
       targetType
+      ... on CartCodeDiscountAllocation {
+        code
+      }
     }
     sellingPlanAllocation {
       sellingPlan {
@@ -234,6 +240,14 @@ export const CART_QUERY_FRAGMENT = `#graphql
           title
           id
           vendor
+          collections(first: 20) {
+            nodes {
+              id
+            }
+            pageInfo {
+              hasNextPage
+            }
+          }
         }
         selectedOptions {
           name
@@ -250,6 +264,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
       value
     }
     cost {
+      subtotalAmount {
+        ...Money
+      }
       totalAmount {
         ...Money
       }
@@ -265,6 +282,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
         ...Money
       }
       targetType
+      ... on CartCodeDiscountAllocation {
+        code
+      }
     }
     merchandise {
       ... on ProductVariant {
@@ -290,6 +310,14 @@ export const CART_QUERY_FRAGMENT = `#graphql
           title
           id
           vendor
+          collections(first: 20) {
+            nodes {
+              id
+            }
+            pageInfo {
+              hasNextPage
+            }
+          }
         }
         selectedOptions {
           name
@@ -365,6 +393,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
         ...Money
       }
       targetType
+      ... on CartCodeDiscountAllocation {
+        code
+      }
     }
     note
     attributes {
