@@ -1,7 +1,7 @@
 import {
   isLoyaltyPageV2Enabled,
-  type JoyLoyaltyPageInitialData,
   JoyLoyaltyPage,
+  type JoyLoyaltyPageInitialData,
 } from "@joy-loyalty/hydrogen";
 import { getJoyLoyaltyPageData } from "@joy-loyalty/hydrogen/server";
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";

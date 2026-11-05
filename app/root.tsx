@@ -22,8 +22,8 @@ import {
   useRouteError,
   useRouteLoaderData,
 } from "react-router";
-import { usePrefixPathWithLocale } from "~/hooks/use-prefix-path-with-locale";
 import { useLegacyThemeText } from "~/hooks/use-legacy-theme-text";
+import { usePrefixPathWithLocale } from "~/hooks/use-prefix-path-with-locale";
 import type { ThemeSettings } from "~/types/weaverse";
 import { loadCriticalData, loadDeferredData } from "./.server/root";
 import { CartStoreSync, useCartFetcherSync } from "./components/cart/cart-sync";
