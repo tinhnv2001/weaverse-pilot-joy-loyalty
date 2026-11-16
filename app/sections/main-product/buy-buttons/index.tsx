@@ -1,13 +1,19 @@
 import {
+  JoyPointsCalculator,
+  type JoyPointsCalculatorProps,
+} from "@joy-loyalty/hydrogen";
+import {
   getAdjacentAndFirstAvailableVariants,
   useOptimisticVariant,
 } from "@shopify/hydrogen";
 import { createSchema, type HydrogenComponentProps } from "@weaverse/hydrogen";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useRouteLoaderData } from "react-router";
 import { AddToCartButton } from "~/components/product/add-to-cart-button";
 import { LazyShopPayButton } from "~/components/product/lazy-shop-pay-button";
+import { usePrefixPathWithLocale } from "~/hooks/use-prefix-path-with-locale";
+import type { RootLoader } from "~/root";
 import type { loader as productRouteLoader } from "~/routes/products/product";
 import { useProductQtyStore } from "../product-quantity-selector";
 import { StickyATCBar } from "./sticky-atc-bar";
@@ -44,6 +50,8 @@ export default function ProductATCButtons(props: ProductATCButtonsProps) {
   } = props;
   const { product, storeDomain } = useLoaderData<typeof productRouteLoader>();
   const { quantity } = useProductQtyStore();
+  const rootData = useRouteLoaderData<RootLoader>("root");
+  const joyLoginUrl = usePrefixPathWithLocale("/account/login");
   const { setInView, setScrolledPast } = useATCVisibilityStore();
   const { ref: inViewRef, inView, entry } = useInView({ threshold: 0 });
 
@@ -102,6 +110,24 @@ export default function ProductATCButtons(props: ProductATCButtonsProps) {
       >
         {atcButtonText}
       </AddToCartButton>
+      {rootData?.joyApiUrl && rootData.joyShopDomain && (
+        <JoyPointsCalculator
+          apiUrl={rootData.joyApiUrl}
+          shopDomain={rootData.joyShopDomain}
+          assetUrl={rootData.joyAssetUrl ?? undefined}
+          initialData={rootData.joy ?? null}
+          context="product"
+          product={product as unknown as JoyPointsCalculatorProps["product"]}
+          selectedVariant={
+            selectedVariant as unknown as JoyPointsCalculatorProps["selectedVariant"]
+          }
+          quantity={quantity}
+          customerTags={rootData.joyPoints?.customerTags}
+          isB2B={rootData.joyPoints?.isB2B}
+          isLoggedIn={rootData.joyPoints?.isLoggedIn}
+          loginUrl={joyLoginUrl}
+        />
+      )}
       {showShopPayButton && selectedVariant?.availableForSale && (
         <LazyShopPayButton
           width="100%"
