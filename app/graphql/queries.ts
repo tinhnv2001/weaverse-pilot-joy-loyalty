@@ -16,6 +16,9 @@ export const PRODUCT_QUERY = `#graphql
       title
       vendor
       handle
+      # Joy <JoyPointsCalculator/> (JoyPointsProduct fields) — rule-engine scope.
+      tags
+      productType
       publishedAt
       descriptionHtml
       description
@@ -77,10 +80,14 @@ export const PRODUCT_QUERY = `#graphql
           ...Media
         }
       }
-      collections(first: 5) {
+      collections(first: 20) {
         nodes {
+          id
           title
           handle
+        }
+        pageInfo {
+          hasNextPage
         }
       }
       seo {

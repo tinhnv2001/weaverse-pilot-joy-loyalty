@@ -240,9 +240,18 @@ export const CART_QUERY_FRAGMENT = `#graphql
           title
           id
           vendor
+          # Joy <JoyPointsCalculator/> (JoyPointsCartLine fields): rule-engine scope + price.
+          tags
+          productType
+          priceRange {
+            minVariantPrice {
+              ...Money
+            }
+          }
           collections(first: 20) {
             nodes {
               id
+              title
             }
             pageInfo {
               hasNextPage
@@ -310,9 +319,18 @@ export const CART_QUERY_FRAGMENT = `#graphql
           title
           id
           vendor
+          # Joy <JoyPointsCalculator/> (JoyPointsCartLine fields): rule-engine scope + price.
+          tags
+          productType
+          priceRange {
+            minVariantPrice {
+              ...Money
+            }
+          }
           collections(first: 20) {
             nodes {
               id
+              title
             }
             pageInfo {
               hasNextPage

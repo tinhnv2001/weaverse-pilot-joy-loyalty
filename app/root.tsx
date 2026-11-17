@@ -1,6 +1,11 @@
 import "@fontsource-variable/cabin"; // Supports weights 400-700
 import "@fontsource-variable/newsreader"; // Supports weights 200-900
-import { JoyProvider, JoyWidget } from "@joy-loyalty/hydrogen";
+import {
+  JOY_POINTS_CUSTOMER_ACCOUNT_QUERY,
+  JoyProvider,
+  JoyWidget,
+  toJoyPointsCustomerInput,
+} from "@joy-loyalty/hydrogen";
 import { getJoyInitialData } from "@joy-loyalty/hydrogen/server";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import type { CartReturn, SeoConfig } from "@shopify/hydrogen";
@@ -79,7 +84,7 @@ export async function loader(args: LoaderFunctionArgs) {
   const { env, storefront, customerAccount } = args.context;
   // Joy data is personalized for members; entry.server.tsx keeps those
   // documents out of the full-page cache. Never stub customerAccount here.
-  const [criticalData, joy] = await Promise.all([
+  const [criticalData, joy, joyPoints] = await Promise.all([
     loadCriticalData(args),
     getJoyInitialData({
       storefront,
@@ -90,6 +95,10 @@ export async function loader(args: LoaderFunctionArgs) {
       locale: storefront.i18n.language.toLowerCase(),
       request: args.request,
     }),
+    // <JoyPointsCalculator/> host contract: customer tags + B2B live in
+    // Shopify, not Joy. isLoggedIn is passed for every visitor so a failed
+    // Joy token mint hides the block instead of showing guest numbers.
+    loadJoyPointsCustomerInput(args),
   ]);
 
   return {
@@ -100,7 +109,26 @@ export async function loader(args: LoaderFunctionArgs) {
     joyApiUrl: env.JOY_API_URL ?? null,
     joyShopDomain: env.JOY_SHOP_DOMAIN ?? null,
     joyAssetUrl: env.JOY_WIDGET_ASSET_URL ?? null,
+    joyPoints,
   };
+}
+
+async function loadJoyPointsCustomerInput({ context }: LoaderFunctionArgs) {
+  let isLoggedIn: boolean | undefined;
+  try {
+    isLoggedIn = await context.customerAccount.isLoggedIn();
+  } catch {
+    return { customerTags: undefined, isB2B: undefined, isLoggedIn: undefined };
+  }
+  if (!isLoggedIn) {
+    return { customerTags: undefined, isB2B: undefined, isLoggedIn };
+  }
+  // A failed optional query must never throw into the root loader. Keep
+  // isLoggedIn: true so the block hides rather than showing guest numbers.
+  const account = await context.customerAccount
+    .query(JOY_POINTS_CUSTOMER_ACCOUNT_QUERY)
+    .catch(() => null);
+  return { ...toJoyPointsCustomerInput(account?.data?.customer), isLoggedIn };
 }
 
 export const meta = ({ data }: MetaArgs<typeof loader>) => {
