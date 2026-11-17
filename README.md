@@ -121,7 +121,7 @@ For Weaverse sections, theme settings, the PWA and the rest of the Pilot theme, 
 
 ## Deployment
 
-Pushes to `main` deploy to Shopify Oxygen through `.github/workflows/oxygen-deployment-*.yml`. Add the Joy variables to the Oxygen environment first, with `JOY_API_SECRET` marked as secret.
+Every push deploys to Shopify Oxygen through `.github/workflows/oxygen-deployment-*.yml`: `main` goes to production, other branches get a preview deployment. Add the Joy variables to the Oxygen environment first, with `JOY_API_SECRET` marked as secret.
 
 > [!NOTE]
 > If the Oxygen build fails with `JavaScript heap out of memory`, set `SHOPIFY_HYDROGEN_FLAG_SOURCEMAP: "false"` (and, if needed, `NODE_OPTIONS: --max-old-space-size=8192`) on the deploy step of that workflow.
