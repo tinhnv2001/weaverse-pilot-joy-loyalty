@@ -1,325 +1,134 @@
-<h1 align="center">Pilot — Production-ready Shopify Hydrogen theme</h1>
+<h1 align="center">Weaverse Pilot × Joy Loyalty</h1>
 
 <div align="center">
 
-A lightning-fast, fully-customizable Shopify storefront built with **Hydrogen**, **React Router 7**, and **Weaverse**.
+A reference Shopify Hydrogen storefront with the [Joy Loyalty](https://joy.so) headless integration installed end to end.
 
-📚 [Docs](https://weaverse.io/docs) · 🚀 [Live demo](https://pilot.weaverse.dev) · 🎨 [Customize in Weaverse Studio](https://studio.weaverse.io/demo?theme=pilot) · 🗣 [Slack community](https://join.slack.com/t/weaversecommunity/shared_invite/zt-235bv7d80-velzJU8CpZIHWdrzFwAdXg) · 🐞 [Report a bug](https://github.com/weaverse/pilot/issues)
+📘 [Joy on Hydrogen guide](https://help.joy.so/settings/developers/headless) · 🛠 [Joy Headless API](https://devdocs.joy.so/joy-headless-api/overview) · 🤖 [Joy agent skills](https://github.com/tinhnv2001/joy-loyalty-hydrogen-skills) · 🐞 [Report an issue](https://github.com/tinhnv2001/weaverse-pilot-joy-loyalty/issues)
 
 </div>
 
-![Weaverse + Hydrogen + Shopify](https://cdn.shopify.com/s/files/1/0838/0052/3057/files/weaverse-x-hydrogen-x-shopify.png?v=1755245801)
+This repository is [Weaverse Pilot](https://github.com/weaverse/pilot) (Hydrogen, React Router 7, Weaverse Studio) with Joy Loyalty added the way we recommend merchants and agencies add it. Use it to see the integration working on a real storefront, or to copy the pattern into your own Hydrogen project.
 
-Pilot pairs a hand-tuned Hydrogen storefront (SSR, streaming, edge-ready) with **Weaverse Studio**, so developers keep full control of the code while merchants edit every page visually — no redeploys. It ships with the routes, sections, and integrations a real store needs on day one.
+---
+
+## What Joy adds
+
+| Feature | Where it shows | Code |
+|---|---|---|
+| **Loyalty widget** (launcher + panel: earn, redeem, VIP tiers, referrals) | Every page | `<JoyProvider/>` + `<JoyWidget/>` in `app/root.tsx` |
+| **Rewards page** | `/pages/rewards` | `app/routes/pages/rewards.tsx` (`<JoyLoyaltyPage/>`) |
+| **Redeem in Cart** | Cart drawer | `app/components/cart/joy-redeem-cart.tsx` |
+| **Point calculator** ("Earn X points") | Product page, cart drawer and `/cart` | `app/sections/main-product/buy-buttons/index.tsx`, `app/components/cart/joy-points-calculator.tsx` |
+| **Weaverse blocks** — *Joy — Loyalty Launcher*, *Joy — Loyalty Page* | Weaverse Studio, drag and drop | `@joy-loyalty/weaverse-hydrogen`, registered in `app/weaverse/components.ts` |
+
+Behind the scenes:
+
+- **Customer sign-in** — `/api/joy-token` signs a short-lived token for the logged-in Shopify customer (Customer Account API), so members see their own balance, tier and rewards.
+- **Server-side data** — the root loader calls `getJoyInitialData()` in parallel with the page's Storefront queries, so the widget renders without a loading flash.
+- **Caching** — `app/entry.server.tsx` marks documents that embed member data as private and keeps guest pages cacheable.
+- **CSP** — `joyCspDirectives()` is merged into the storefront's Content Security Policy.
+- **Helper routes** — `/api/joy-products` feeds the widget's product sections (recently viewed, recommended); `/api/joy-place-order-scope` resolves earning programs limited to specific products or collections.
+
+Design and texts come from Joy admin (**Branding**), so merchants change the look without a redeploy.
 
 ---
 
 ## Quick start
 
-Pick the path that fits you. All three end at a running storefront on **http://localhost:3456**.
-
-### Option A — Let your AI coding agent do it (fastest)
-
-Pilot is built to be set up by an agent (Cursor, Claude Code, Codex, opencode, …). Add the Weaverse skills, then ask your agent to set up the project:
-
 ```bash
-npx skills add Weaverse/shopify-hydrogen-skills
-```
-
-> "Use the `setup-weaverse-project` skill to set up this Weaverse Hydrogen storefront."
-
-The agent boots a **live preview on the bundled demo store first** (≈2 minutes, zero credentials), then helps you swap in your own store and project. See [AI coding agent support](#ai-coding-agent-support) below.
-
-### Option B — Weaverse Studio (no code)
-
-1. Install the [Weaverse Hydrogen Customizer](https://apps.shopify.com/weaverse) from the Shopify App Store.
-2. Create a new Hydrogen storefront in Weaverse and pick **Pilot**.
-3. Follow the in-Studio instructions to initialize the project locally with `@weaverse/cli`.
-4. Open **Weaverse Studio** and start customizing.
-
-### Option C — Clone and run it yourself
-
-```bash
-git clone https://github.com/weaverse/pilot my-storefront
+git clone https://github.com/tinhnv2001/weaverse-pilot-joy-loyalty my-storefront
 cd my-storefront
-rm -rf .github         # Pilot's internal workflows
-cp .env.example .env   # ships working demo-store tokens + a demo WEAVERSE_PROJECT_ID
+cp .env.example .env   # demo store + demo Weaverse project
 npm install
 npm run dev            # → http://localhost:3456
 ```
 
-`.env.example` contains a live demo store's tokens, so the storefront runs immediately. Swap in your own values (see [Environment](#environment)) when you're ready to make it yours.
+`.env.example` ships working demo-store tokens, so the storefront renders immediately. Joy turns on once you add the Joy variables below.
 
-> [!NOTE]
-> `.github` holds Pilot's own workflows (demo deploy, CI, code review), which fail without Weaverse's secrets. Remove it the same way if you used **Use this template**; connecting Oxygen later adds your own deploy workflow.
+### Connect Joy
 
----
+Add these to `.env` (and to your Oxygen environment):
 
-## Requirements
+| Variable | Required | Value |
+|---|---|---|
+| `JOY_API_URL` | yes | `https://api.joy.so/app/api/v1/headless` |
+| `JOY_SHOP_DOMAIN` | yes | Your **myshopify** domain, e.g. `your-store.myshopify.com` |
+| `JOY_API_SECRET` | yes, for signed-in customers | Joy admin → **Settings → Manage keys → Headless secret** |
+| `JOY_WIDGET_ASSET_URL` | no | Leave unset in production |
 
-- **Node.js** ≥ 22.15.0
-- **npm** (the repo ships a `package-lock.json`)
-- A **Shopify** store and the [Weaverse app](https://apps.shopify.com/weaverse) to customize visually and get a `WEAVERSE_PROJECT_ID`
+> [!IMPORTANT]
+> Never prefix Joy variables with `PUBLIC_` — Hydrogen sends `PUBLIC_*` values to the browser. Keep `JOY_API_SECRET` out of git and mark it as secret in Oxygen.
 
----
-
-## AI coding agent support
-
-Pilot is designed to be developed *with* an agent:
-
-- **`AGENTS.md`** — committed to the repo with inline Weaverse component patterns, the schema/input-type reference, loader patterns, and common pitfalls. Cursor, Claude Code, Windsurf, Codex, and GitHub Copilot read it automatically.
-- **Weaverse MCP** — give your agent first-class access to your Weaverse account (search the docs, list projects/pages, read a page as Portable Text, theme settings, locales) over the read-only Content API:
-
-  ```bash
-  npx -y @weaverse/mcp
-  ```
-
-  Docs search needs no key; account tools use `WEAVERSE_API_KEY` (account tools require `@weaverse/mcp` ≥ 2.2.0). Per-client setup (Cursor, Claude Code, Codex, opencode, VS Code, …): **https://weaverse.io/docs/developer-tools/weaverse-mcp**
-- **`setup-weaverse-project` skill** — the demo-first onboarding flow used in Option A, from [`Weaverse/shopify-hydrogen-skills`](https://github.com/Weaverse/shopify-hydrogen-skills).
+Joy headless storefronts require the Joy **Ultimate** plan. Full setup and troubleshooting: [Install manually](https://help.joy.so/settings/developers/headless/install-manually).
 
 ---
 
-## What's included
+## Add Joy to your own Hydrogen storefront
 
-**Stack**
-- [Shopify Hydrogen](https://hydrogen.shopify.dev/) on Oxygen, with the Shopify CLI
-- [React Router 7](https://reactrouter.com/) — routing, SSR, and data loading
-- [TailwindCSS v4](https://tailwindcss.com/) + [Radix UI](https://www.radix-ui.com/) + [class-variance-authority](https://cva.style/)
-- TypeScript (strict) and GraphQL codegen
-- [Biome](https://biomejs.dev/) for linting/formatting
-- [Swiper](https://swiperjs.com/) carousels, [Playwright](https://playwright.dev/) E2E tests
+**With an AI coding agent (Claude Code, Cursor, Codex, …):**
 
-**Commerce features**
-- [Customer Account API](https://www.shopify.com/partners/blog/introducing-customer-account-api-for-headless-stores) (OAuth-based login)
-- [Combined Listings](https://shopify.dev/docs/apps/build/product-merchandising/combined-listings) and [product bundles](https://help.shopify.com/en/manual/products/bundles)
-- Predictive search, cart, markets/localization, SEO, and analytics
-- [Judge.me](https://judge.me/) reviews, [Klaviyo](https://www.klaviyo.com/) email, and [Shopify Inbox](https://apps.shopify.com/inbox) chat ([setup guide](.weaverse/docs/shopify-inbox.md))
+```bash
+npx skills add tinhnv2001/joy-loyalty-hydrogen-skills
+```
 
-**And** every section is editable in [Weaverse Studio](https://weaverse.io) — no redeploy to change content or layout.
+Then ask your agent to use the skill for the part you need:
+
+| Skill | Adds |
+|---|---|
+| `joy-headless-install` | Packages, environment, token route, root loader, widget, rewards page, CSP, caching |
+| `joy-headless-redeem-cart` | Redeem in Cart in the cart drawer or cart page |
+| `joy-headless-points-calculator` | Point calculator on the product page and in the cart |
+
+**By hand:** follow the guides on help.joy.so —
+[Joy on Hydrogen](https://help.joy.so/settings/developers/headless) ·
+[Joy × Weaverse](https://help.joy.so/settings/developers/weaverse) ·
+[Redeem in Cart](https://help.joy.so/on-site-content/cart-drawer/redeem-in-cart-headless) ·
+[Point calculator](https://help.joy.so/on-site-content/product-page/point-calculator-headless).
+The git history of this repo shows each step as its own commit.
 
 ---
 
-## Commands
+## Packages
+
+| Package | Version | Purpose |
+|---|---|---|
+| `@joy-loyalty/hydrogen` | ^0.4.0 | React components, server helpers and routes |
+| `@joy-loyalty/sdk` | ^0.3.1 | Typed client for the Joy Headless API |
+| `@joy-loyalty/weaverse-hydrogen` | ^0.2.0 | Joy blocks for Weaverse Studio |
+
+`package.json` pins `@joy-loyalty/hydrogen` and `@joy-loyalty/sdk` through `overrides`, so the Weaverse blocks share the app's single copy (and its `JoyProvider` context). Keep the overrides when you upgrade.
+
+---
+
+## Development
 
 ```bash
 npm run dev          # dev server + codegen on http://localhost:3456
-npm run build        # production build (shopify hydrogen build --codegen)
-npm run preview      # build, then preview the production bundle
+npm run build        # production build
 npm run typecheck    # tsc --noEmit
-npm run biome:fix    # lint + format (write)
-npm run test         # unit tests (tests/unit, Playwright runner)
+npm run biome:fix    # lint + format
+npm run test         # unit tests
 ```
 
-Run `npm run biome:fix && npm run typecheck` before committing.
+Run `npm run biome:fix && npm run typecheck` before committing. CI (`.github/workflows/ci.yml`) runs lint, typecheck, the Weaverse manifest and settings checks, and a production build on every pull request and every push to `main`.
 
----
+Storefront base variables (`SESSION_SECRET`, `PUBLIC_STORE_DOMAIN`, `PUBLIC_STOREFRONT_API_TOKEN`, `WEAVERSE_PROJECT_ID`, customer account, analytics) are listed in [`.env.example`](.env.example). If your store is linked to a Hydrogen channel, `npx shopify hydrogen env pull` fills them in.
 
-## Environment
-
-The minimum variables needed to render a storefront (the rest are feature-complete extras):
-
-| Variable | Required | Source |
-|---|---|---|
-| `SESSION_SECRET` | yes | any random string |
-| `PUBLIC_STORE_DOMAIN` | yes | Shopify (Hydrogen sales channel / Headless app) |
-| `PUBLIC_STOREFRONT_API_TOKEN` | yes | Shopify (Hydrogen sales channel / Headless app) |
-| `WEAVERSE_PROJECT_ID` | yes | Weaverse Studio (or the agent handshake) |
-| `SHOP_ID`, customer-account, checkout, analytics, reviews | no | Shopify / integrations, add after first success |
-
-If your store is already linked to a Hydrogen channel, `npx shopify hydrogen env pull` fills these in. See [`.env.example`](.env.example) for the full list.
-
----
-
-## Project structure
-
-```
-app/
-├── components/   # Reusable UI components
-├── sections/     # Weaverse sections (visually editable)
-├── routes/       # React Router routes (locale-prefixed)
-├── graphql/      # GraphQL queries & fragments
-├── hooks/        # Shared React hooks
-├── utils/        # Helpers
-├── weaverse/     # Weaverse client, component registry, theme schema
-└── .server/      # Server-only context (Hydrogen + Weaverse client)
-```
-
-Key config: `react-router.config.ts`, `vite.config.ts`, `codegen.ts`, `biome.json`, `AGENTS.md`.
-
----
-
-## Developer guide
-
-### Load page data in parallel
-
-Every route loads Weaverse data alongside its Storefront queries with `Promise.all()`:
-
-```tsx
-// app/routes/home.tsx
-import type { LoaderFunctionArgs } from 'react-router';
-
-export async function loader({ context }: LoaderFunctionArgs) {
-  const { storefront, weaverse } = context;
-  const [weaverseData, { shop }] = await Promise.all([
-    weaverse.loadPage({ type: 'INDEX' }),
-    storefront.query(SHOP_QUERY),
-  ]);
-  return { weaverseData, shop };
-}
-```
-
-`context.weaverse` is a `WeaverseClient` injected in `app/.server/context.ts` (`new WeaverseClient({ ...hydrogenContext, request, cache, themeSchema, components })`).
-
-### Render a page
-
-```tsx
-// app/routes/home.tsx
-import { WeaverseContent } from '~/weaverse';
-
-export default function Homepage() {
-  return <WeaverseContent />;
-}
-```
-
-`WeaverseContent` wraps `WeaverseHydrogenRoot` from `@weaverse/hydrogen` with the project's component registry.
-
-### Installable mobile app (PWA)
-
-Pilot can make the storefront installable as a home-screen app on iOS and Android — no app store, branded per merchant. Enable it in theme settings under **Mobile app (PWA)** and optionally upload a square app icon (512×512 PNG recommended; falls back to the Shopify brand logo).
-
-- `/manifest.webmanifest` is generated from theme settings (`app/routes/pwa/manifest.webmanifest.ts`).
-- A minimal service worker (`public/sw.js`) caches only hashed build assets and Shopify CDN images. HTML, cart, account, and checkout are never intercepted.
-- iOS shows no install prompt, so an optional one-time hint banner explains Share → Add to Home Screen (`app/components/pwa-install-hint.tsx`).
-- Push notifications are intentionally not included.
-
-### Use global theme settings
-
-Theme settings load in `root.tsx` and are read anywhere with `useThemeSettings`:
-
-```tsx
-import { useThemeSettings } from '@weaverse/hydrogen';
-
-function Logo() {
-  const { logo } = useThemeSettings();
-  return <img src={logo} alt="Logo" />;
-}
-```
-
-### Create a section
-
-Add a file under `app/sections/`, export a component (it **must** accept `ref` and extend `HydrogenComponentProps`) and a `schema`, then register it in `app/weaverse/components.ts`.
-
-```tsx
-// app/sections/video/index.tsx
-import { createSchema, type HydrogenComponentProps } from '@weaverse/hydrogen';
-
-interface VideoProps extends HydrogenComponentProps {
-  ref: React.Ref<HTMLElement>;
-  heading: string;
-  videoUrl: string;
-}
-
-export default function Video({ ref, heading, videoUrl, ...rest }: VideoProps) {
-  return (
-    <section ref={ref} {...rest}>
-      <h2>{heading}</h2>
-      <iframe src={videoUrl} title="Video" allowFullScreen />
-    </section>
-  );
-}
-
-export const schema = createSchema({
-  type: 'video',
-  title: 'Video',
-  settings: [
-    {
-      group: 'Video',
-      inputs: [
-        { type: 'text', name: 'heading', label: 'Heading', defaultValue: 'Learn more' },
-        { type: 'text', name: 'videoUrl', label: 'Video URL', defaultValue: 'https://www.youtube.com/embed/-akQyQN8rYM' },
-      ],
-    },
-  ],
-});
-```
-
-Need data from Shopify or a third-party API? Export a **server-side** `loader` from the section and read it via `Component.props.loaderData`:
-
-```tsx
-import type { ComponentLoaderArgs } from '@weaverse/hydrogen';
-
-export const loader = async ({ weaverse, data }: ComponentLoaderArgs) => {
-  const result = await weaverse.storefront.query(HOMEPAGE_SEO_QUERY, {
-    variables: { handle: data.collection?.handle || 'frontpage' },
-  });
-  return result.data;
-};
-```
-
-```ts
-// app/weaverse/components.ts
-import * as Video from '~/sections/video';
-export const components: HydrogenComponent[] = [/* …existing, */ Video];
-```
-
-### Dev tools
-
-- Storefront: http://localhost:3456
-- GraphiQL: http://localhost:3456/graphiql
-- Network inspector: http://localhost:3456/debug-network
+For Weaverse sections, theme settings, the PWA and the rest of the Pilot theme, see the [Weaverse docs](https://weaverse.io/docs) and [`AGENTS.md`](AGENTS.md).
 
 ---
 
 ## Deployment
 
-- [Shopify Oxygen](https://weaverse.io/docs/deployment/oxygen) (recommended)
-- [Vercel](https://wvse.cc/deploy-pilot-to-vercel)
+Pushes to `main` deploy to Shopify Oxygen through `.github/workflows/oxygen-deployment-*.yml`. Add the Joy variables to the Oxygen environment first, with `JOY_API_SECRET` marked as secret.
 
 > [!NOTE]
-> **Deploy fails with `JavaScript heap out of memory` (exit 134)?**
->
-> The Oxygen build generates a server sourcemap (~4.6 MB here, roughly two thirds of the server output). On large storefronts that can push the CI runner past Node's default heap, and the deploy dies before uploading a complete build. The environment then serves HTML referencing assets that were never published, and the storefront renders blank.
->
-> Set `SHOPIFY_HYDROGEN_FLAG_SOURCEMAP=false` on the deploy step of the generated workflow (`.github/workflows/oxygen-deployment-*.yml`). Add `NODE_OPTIONS` too if it still OOMs:
->
-> ```yaml
-> - name: Build and Publish to Oxygen
->   run: npx shopify hydrogen deploy
->   env:
->     SHOPIFY_HYDROGEN_DEPLOYMENT_TOKEN: ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_... }}
->     SHOPIFY_HYDROGEN_FLAG_SOURCEMAP: "false"
->     NODE_OPTIONS: --max-old-space-size=8192
-> ```
->
-> This can't be fixed in `vite.config.ts`: the Shopify CLI passes `sourcemap` inline to Vite when it builds, and inline config overrides the config file. The CLI flag (or its `--no-sourcemap` equivalent) is the only lever the theme repo can document.
+> If the Oxygen build fails with `JavaScript heap out of memory`, set `SHOPIFY_HYDROGEN_FLAG_SOURCEMAP: "false"` (and, if needed, `NODE_OPTIONS: --max-old-space-size=8192`) on the deploy step of that workflow.
 
 ---
 
-## Who's using Pilot
+## Credits and license
 
-These **Shopify (Plus)** brands run on Weaverse/Pilot in production:
-
-- [Huckleberry Roasters](https://www.huckleberryroasters.com/) — award-winning Colorado coffee, ethically sourced since 2011.
-- [Bubble Goods](https://bubblegoods.com/) — 2,000+ healthy foods from independent U.S. makers.
-- [Karma and Luck](https://www.karmaandluck.com) — lifestyle brand rooted in timeless traditions.
-- [Baltzar](https://baltzar.com/) — curated menswear from world-renowned specialists.
-- [iROCKER](https://irockersup.com/) — premium paddle boards and water gear.
-- [Roland (Brazil)](https://store.roland.com.br/) — electronic musical instruments.
-- [Timothy London](https://timothy.london/) — premium British travel goods.
-- [Vasuma Eyewear](https://vasuma.com/) — Stockholm eyewear inspired by the 50s–60s.
-
-…and many more.
-
----
-
-## References
-
-- [Weaverse docs](https://weaverse.io/docs) · [Weaverse MCP](https://weaverse.io/docs/developer-tools/weaverse-mcp)
-- [Hydrogen](https://shopify.dev/custom-storefronts/hydrogen) · [React Router 7](https://reactrouter.com/)
-- [Tailwind CSS v4](https://tailwindcss.com/) · [Radix UI](https://www.radix-ui.com/) · [Biome](https://biomejs.dev/)
-
-Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under [MIT](LICENSE.md).
-
----
-
-Let **Weaverse** & **Pilot** power your Shopify store with top-tier performance and unmatched customization. 🚀
+Built on [Weaverse Pilot](https://github.com/weaverse/pilot) by Weaverse. Joy Loyalty integration by the Joy team.
+Licensed under [MIT](LICENSE.md). For issues with the Pilot theme itself, use the [upstream repository](https://github.com/weaverse/pilot/issues).
